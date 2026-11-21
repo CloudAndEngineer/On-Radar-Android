@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -118,24 +117,15 @@ fun CheckScreen(
             when (state.step) {
                 CheckStep.QUESTION -> {
                     // 선택지가 넘치면 이 영역만 스크롤됩니다. (Note 8 · 글꼴 1.1배 기준으로는 넘치지 않음)
-                    val scroll = rememberScrollState()
+                    // 안내 문구는 두지 않습니다: 문구가 자리를 차지해 오히려 버튼을 밀어내기 때문.
                     Column(
-                        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
+                        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         if (isMorning) MorningQuestion(vm::answer) else EveningQuestion(vm::answer)
                         state.error?.let {
                             Text(it, color = TodakColors.Emergency, style = MaterialTheme.typography.bodyLarge)
                         }
-                    }
-                    if (scroll.canScrollForward) {
-                        Text(
-                            "▼ 아래로 밀면 더 있어요",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TodakColors.OnSurfaceMuted,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
                     }
                 }
                 CheckStep.SUBMITTING -> LoadingMessage("저장하고 있어요")
@@ -157,8 +147,8 @@ private fun MorningQuestion(onAnswer: (Int) -> Unit) {
 @Composable
 private fun EveningQuestion(onAnswer: (Int) -> Unit) {
     ScreenTitle(EVENING_QUESTION)
-    // 밥그릇 개수로 횟수를 표시합니다. 가로로 긴 버튼 4개를 72dp 높이로 맞춰 한 화면에 넣습니다.
-    val h = TodakDimens.ButtonMinHeight
+    // 밥그릇 개수로 횟수를 표시합니다. 가로로 긴 버튼 4개를 84dp 높이로 맞춰 한 화면에 넣습니다.
+    val h = EVENING_CHOICE_HEIGHT
     ChoiceButton("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) }, minHeight = h, compact = true)
     ChoiceButton("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) }, minHeight = h, compact = true)
     ChoiceButton("🍚🍚🍚", "세 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(3) }, minHeight = h, compact = true)
@@ -168,3 +158,4 @@ private fun EveningQuestion(onAnswer: (Int) -> Unit) {
 private const val MORNING_QUESTION = "오늘 몸은 어떠세요?"
 private const val EVENING_QUESTION = "오늘 밥은 몇 번 드셨어요?"
 private val MORNING_CHOICE_HEIGHT = 116.dp
+private val EVENING_CHOICE_HEIGHT = 84.dp // 4개 + 질문이 Note 8(글꼴 1.1배) 한 화면에 들어오는 최대 높이
