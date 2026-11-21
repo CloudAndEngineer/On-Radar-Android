@@ -18,11 +18,14 @@ android {
 
         // Core API 주소. 배포 주소가 정해지면 바꿉니다. (API 명세서: CORE_BASE_URL)
         buildConfigField("String", "CORE_BASE_URL", "\"https://todak-core.onrender.com/api/\"")
-        // true면 백엔드 없이 앱 안의 가짜 데이터로 동작합니다.
-        buildConfigField("boolean", "USE_MOCK", "true")
+        // true면 백엔드 없이 앱 안의 가짜 데이터로 동작합니다 (시연 모드). release는 항상 실서버.
+        buildConfigField("boolean", "USE_MOCK", "false")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "USE_MOCK", "true")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

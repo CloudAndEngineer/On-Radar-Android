@@ -89,7 +89,8 @@ class FakeTodakRepository : TodakRepository {
 
     override suspend fun emergency(): Result<EmergencyResponse> {
         delay(400)
-        return Result.success(EmergencyResponse(9, "EMERGENCY", "복지사 선생님께 바로 알렸어요"))
+        // 실제로 보내지 않으므로 "알렸어요" 같은 성공 문구를 쓰지 않습니다.
+        return Result.success(EmergencyResponse(9, "EMERGENCY", "시연 모드라 복지사 선생님께 실제로 알리지는 않았어요"))
     }
 
     // 말동무 말투 원칙: 탓하지 않고, 걱정·공감한 뒤 질문 하나. 좋은 날은 칭찬.

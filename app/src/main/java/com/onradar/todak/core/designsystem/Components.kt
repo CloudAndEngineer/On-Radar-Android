@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.onradar.todak.BuildConfig
 
 private val ButtonShape = RoundedCornerShape(20.dp)
 
@@ -50,6 +51,7 @@ fun TodakScaffold(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.systemBars),
     ) {
+        if (BuildConfig.USE_MOCK) DemoModeBanner()
         Box(
             modifier = Modifier
                 .weight(1f)
@@ -60,6 +62,22 @@ fun TodakScaffold(
         }
         if (showHelpBar) HelpBar(onClick = onHelpClick)
     }
+}
+
+/** 가짜 데이터로 동작 중임을 모든 화면 맨 위에 알립니다. 실제 전송으로 오해하지 않게. */
+@Composable
+private fun DemoModeBanner() {
+    Text(
+        text = "🧪 시연 모드 · 실제로 전송되지 않아요",
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 18.sp, lineHeight = 24.sp),
+        maxLines = 1,
+        color = TodakColors.OnSurfaceMuted,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(TodakColors.Outline)
+            .padding(vertical = 6.dp),
+    )
 }
 
 /** 하단 고정 [도와주세요] 바. 응급 전용 빨강. */
