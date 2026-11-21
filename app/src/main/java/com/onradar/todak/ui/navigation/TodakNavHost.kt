@@ -71,7 +71,6 @@ fun TodakNavHost(navController: NavHostController = rememberNavController()) {
             val session = Session.valueOf(entry.arguments?.getString("session") ?: Session.MORNING.name)
             CheckScreen(
                 session = session,
-                displayName = sessionStore.displayName,
                 onSubmitted = { checkId ->
                     navController.navigate(Routes.chat(checkId)) {
                         popUpTo(Routes.HOME) // 대화에서 뒤로 가면 체크가 아니라 홈으로
