@@ -169,22 +169,53 @@ fun ChoiceButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = TodakDimens.LargeButtonHeight),
+            .heightIn(min = TodakDimens.ChoiceButtonHeight),
         shape = ButtonShape,
         border = BorderStroke(3.dp, color),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = containerColor,
             contentColor = TodakColors.OnSurface,
         ),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(emoji, fontSize = 44.sp)
+            Text(emoji, fontSize = 36.sp)
             Spacer(Modifier.width(20.dp))
             Text(label, style = MaterialTheme.typography.titleLarge, color = color)
+        }
+    }
+}
+
+/**
+ * 선택지 타일 (그림 위, 글자 아래). 선택지가 4개라 한 줄 버튼으로는 화면에 다 안 들어갈 때 2×2로 씁니다.
+ * 버튼 높이는 72dp 원칙보다 큰 96dp 이상.
+ */
+@Composable
+fun ChoiceTile(
+    emoji: String,
+    label: String,
+    color: Color,
+    containerColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 96.dp),
+        shape = ButtonShape,
+        border = BorderStroke(3.dp, color),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = containerColor,
+            contentColor = TodakColors.OnSurface,
+        ),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            Text(emoji, fontSize = 26.sp, lineHeight = 30.sp, maxLines = 1)
+            Text(label, style = MaterialTheme.typography.titleLarge, maxLines = 1, color = color, textAlign = TextAlign.Center)
         }
     }
 }

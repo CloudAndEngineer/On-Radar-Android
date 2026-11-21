@@ -2,6 +2,11 @@ package com.onradar.todak.ui.senior.check
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +21,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.onradar.todak.core.designsystem.ChoiceButton
+import com.onradar.todak.core.designsystem.ChoiceTile
 import com.onradar.todak.core.designsystem.PrimaryButton
 import com.onradar.todak.core.designsystem.ScreenTitle
 import com.onradar.todak.core.designsystem.SecondaryButton
@@ -113,7 +119,7 @@ fun CheckScreen(
     TodakScaffold(onHelpClick = { tts.stop(); onHelp() }) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SessionBadge(isMorning)
             when (state.step) {
@@ -128,11 +134,27 @@ fun CheckScreen(
                     SecondaryButton("이전", onClick = onBack)
                 }
                 CheckStep.QUESTION -> {
-                    if (isMorning) MorningQuestion(vm::answer) else EveningQuestion(vm::answer)
-                    state.error?.let {
-                        Text(it, color = TodakColors.Emergency, style = MaterialTheme.typography.bodyLarge)
+                    // 선택지 영역만 스크롤되고 [이전]은 항상 아래에 보이게 합니다.
+                    // (Note 8 · 글꼴 1.1배에서 '못 먹었어요'가 잘리던 문제)
+                    val scroll = rememberScrollState()
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        if (isMorning) MorningQuestion(vm::answer) else EveningQuestion(vm::answer)
+                        state.error?.let {
+                            Text(it, color = TodakColors.Emergency, style = MaterialTheme.typography.bodyLarge)
+                        }
                     }
-                    Spacer(Modifier.weight(1f))
+                    if (scroll.canScrollForward) {
+                        Text(
+                            "▼ 아래로 밀면 더 있어요",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TodakColors.OnSurfaceMuted,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     SecondaryButton("이전", onClick = vm::back)
                 }
                 CheckStep.SUBMITTING -> LoadingMessage("저장하고 있어요")
@@ -152,11 +174,15 @@ private fun MorningQuestion(onAnswer: (Int) -> Unit) {
 @Composable
 private fun EveningQuestion(onAnswer: (Int) -> Unit) {
     ScreenTitle(EVENING_QUESTION)
-    // 밥그릇 개수로 횟수를 표시합니다.
-    ChoiceButton("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) })
-    ChoiceButton("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) })
-    ChoiceButton("🍚🍚🍚", "세 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(3) })
-    ChoiceButton("🥣", "못 먹었어요", TodakColors.OnSurfaceMuted, TodakColors.Surface, { onAnswer(0) })
+    // 밥그릇 개수로 횟수를 표시합니다. 네 개가 한 화면에 들어오도록 2×2로 놓습니다.
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ChoiceTile("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) }, Modifier.weight(1f))
+        ChoiceTile("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) }, Modifier.weight(1f))
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ChoiceTile("🍚🍚🍚", "세 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(3) }, Modifier.weight(1f))
+        ChoiceTile("🥣", "못 먹었어요", TodakColors.OnSurfaceMuted, TodakColors.Surface, { onAnswer(0) }, Modifier.weight(1f))
+    }
 }
 
 private const val MORNING_QUESTION = "오늘 몸은 어떠세요?"

@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.sp
 object TodakDimens {
     val ButtonMinHeight = 72.dp
     val LargeButtonHeight = 96.dp
+    /** 한 화면에 선택지 3개 + [이전]이 들어오도록 (Note 8 · 글꼴 1.1배 기준). 72dp 원칙보다 큼. */
+    val ChoiceButtonHeight = 84.dp
     val ScreenPadding = 24.dp
     val HelpBarHeight = 80.dp
 }
