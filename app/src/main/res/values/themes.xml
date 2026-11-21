@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 화면은 모두 Compose로 그립니다. 시작 순간의 창 배경만 앱 배경색과 맞춥니다. -->
+    <style name="Theme.Todak" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/todak_background</item>
+        <item name="android:statusBarColor">@color/todak_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/todak_background</item>
+    </style>
+</resources>
