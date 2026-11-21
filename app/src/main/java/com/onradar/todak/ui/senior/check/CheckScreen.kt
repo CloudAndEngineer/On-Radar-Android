@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import com.onradar.todak.data.model.Session
 import com.onradar.todak.data.repository.ApiException
 import com.onradar.todak.data.repository.TodakRepository
 import com.onradar.todak.ui.common.LoadingMessage
+import com.onradar.todak.ui.common.appContainer
 import com.onradar.todak.ui.common.todakViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -96,7 +98,19 @@ fun CheckScreen(
         state.submittedCheckId?.let(onSubmitted)
     }
 
-    TodakScaffold(onHelpClick = onHelp) {
+    // 인사와 질문을 소리로도 읽어 줍니다. 단계가 바뀔 때 한 번만, 화면을 떠나면 멈춥니다.
+    val tts = appContainer().tts
+    val greeting = if (isMorning) "좋은 아침이에요, $displayName!" else "좋은 저녁이에요, $displayName!"
+    LaunchedEffect(state.step) {
+        when (state.step) {
+            CheckStep.GREETING -> tts.speak(greeting)
+            CheckStep.QUESTION -> tts.speak(if (isMorning) MORNING_QUESTION else EVENING_QUESTION)
+            CheckStep.SUBMITTING -> tts.stop()
+        }
+    }
+    DisposableEffect(Unit) { onDispose { tts.stop() } }
+
+    TodakScaffold(onHelpClick = { tts.stop(); onHelp() }) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -104,9 +118,7 @@ fun CheckScreen(
             SessionBadge(isMorning)
             when (state.step) {
                 CheckStep.GREETING -> {
-                    ScreenTitle(
-                        if (isMorning) "좋은 아침이에요,\n$displayName!" else "좋은 저녁이에요,\n$displayName!",
-                    )
+                    ScreenTitle(greeting.replace(", ", ",\n"))
                     Spacer(Modifier.weight(1f))
                     PrimaryButton(
                         if (isMorning) "네, 일어났어요" else "네, 안녕하세요",
@@ -131,7 +143,7 @@ fun CheckScreen(
 
 @Composable
 private fun MorningQuestion(onAnswer: (Int) -> Unit) {
-    ScreenTitle("오늘 몸은 어떠세요?")
+    ScreenTitle(MORNING_QUESTION)
     ChoiceButton("😊", "좋아요", TodakColors.Good, TodakColors.GoodContainer, { onAnswer(ConditionScore.GOOD) })
     ChoiceButton("😐", "그저 그래요", TodakColors.SoSo, TodakColors.SoSoContainer, { onAnswer(ConditionScore.SO_SO) })
     ChoiceButton("😣", "안 좋아요", TodakColors.Bad, TodakColors.BadContainer, { onAnswer(ConditionScore.BAD) })
@@ -139,10 +151,13 @@ private fun MorningQuestion(onAnswer: (Int) -> Unit) {
 
 @Composable
 private fun EveningQuestion(onAnswer: (Int) -> Unit) {
-    ScreenTitle("오늘 밥은 몇 번 드셨어요?")
+    ScreenTitle(EVENING_QUESTION)
     // 밥그릇 개수로 횟수를 표시합니다.
     ChoiceButton("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) })
     ChoiceButton("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) })
     ChoiceButton("🍚🍚🍚", "세 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(3) })
     ChoiceButton("🥣", "못 먹었어요", TodakColors.OnSurfaceMuted, TodakColors.Surface, { onAnswer(0) })
 }
+
+private const val MORNING_QUESTION = "오늘 몸은 어떠세요?"
+private const val EVENING_QUESTION = "오늘 밥은 몇 번 드셨어요?"
