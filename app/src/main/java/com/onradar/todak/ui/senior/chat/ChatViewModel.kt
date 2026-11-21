@@ -6,6 +6,8 @@ import com.onradar.todak.core.speech.TtsManager
 import com.onradar.todak.data.model.ConversationTurnResponse
 import com.onradar.todak.data.repository.TodakRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -24,7 +26,8 @@ enum class ChatPhase {
     PREPARING,   // AI 답 기다리는 중
     AI_SPEAKING, // AI 말을 읽어 주는 중
     READY,       // [누르고 말씀하세요] 대기
-    LISTENING,   // 듣고 있어요
+    MIC_PREPARING, // 버튼을 누른 직후, 인식기가 준비될 때까지 (중복 시작 막음)
+    LISTENING,   // 듣고 있어요 (인식기가 준비 완료를 알린 뒤에만)
     MIC_FAILED,  // 마이크 권한 없음·인식 실패 → 다시 말하기 / 다음에 할게요
     ERROR,       // 서버와 통신 실패 → 다시 해 보기 / 다음에 할게요
     FINISHED,
@@ -73,12 +76,49 @@ class ChatViewModel(
         }
     }
 
-    fun onListening() = setPhase(ChatPhase.LISTENING, failReason = null)
+    private var micTimeout: Job? = null
 
-    fun onMicUnavailable(reason: String) = setPhase(ChatPhase.MIC_FAILED, failReason = reason)
+    /**
+     * 마이크 버튼을 누른 직후. true면 인식을 시작해도 됩니다 (이미 준비 중이면 false → 중복 시작 방지).
+     * 일부 기기(예: Google 앱이 꺼진 삼성 폰)는 인식기가 아무 콜백도 주지 않아서, 제한 시간 뒤 실패로 돌립니다.
+     */
+    fun onMicPressed(): Boolean {
+        val phase = _state.value.phase
+        if (phase != ChatPhase.READY && phase != ChatPhase.MIC_FAILED) return false
+        tts.stop()
+        setPhase(ChatPhase.MIC_PREPARING, failReason = null)
+        armMicTimeout(ChatPhase.MIC_PREPARING, MIC_READY_TIMEOUT_MS, "목소리 듣기를 시작하지 못했어요")
+        return true
+    }
+
+    fun onListening() {
+        setPhase(ChatPhase.LISTENING, failReason = null)
+        // 듣는 중에 결과도 오류도 오지 않으면 멈춘 것처럼 보이지 않게 실패로 돌립니다.
+        armMicTimeout(ChatPhase.LISTENING, MIC_RESULT_TIMEOUT_MS, "목소리를 잘 못 들었어요")
+    }
+
+    fun onMicUnavailable(reason: String) {
+        micTimeout?.cancel()
+        setPhase(ChatPhase.MIC_FAILED, failReason = reason)
+    }
+
+    private fun armMicTimeout(phase: ChatPhase, millis: Long, reason: String) {
+        micTimeout?.cancel()
+        micTimeout = viewModelScope.launch {
+            delay(millis)
+            if (_state.value.phase == phase) {
+                onMicTimeout?.invoke()
+                onMicUnavailable(reason)
+            }
+        }
+    }
+
+    /** 시간 초과 때 화면이 인식기를 정리하도록 연결합니다. */
+    var onMicTimeout: (() -> Unit)? = null
 
     /** 음성 인식 결과를 보냅니다. */
     fun send(text: String) {
+        micTimeout?.cancel()
         val id = conversationId ?: return
         if (isFinished()) return
         tts.stop()
@@ -103,7 +143,7 @@ class ChatViewModel(
     fun stopSpeaking() {
         tts.stop()
         _state.update {
-            if (it.phase == ChatPhase.AI_SPEAKING || it.phase == ChatPhase.LISTENING) it.copy(phase = ChatPhase.READY) else it
+            if (it.phase in setOf(ChatPhase.AI_SPEAKING, ChatPhase.LISTENING, ChatPhase.MIC_PREPARING)) it.copy(phase = ChatPhase.READY) else it
         }
     }
 
@@ -153,5 +193,7 @@ class ChatViewModel(
 
     private companion object {
         const val END_TIMEOUT_MS = 15_000L
+        const val MIC_READY_TIMEOUT_MS = 5_000L
+        const val MIC_RESULT_TIMEOUT_MS = 20_000L
     }
 }

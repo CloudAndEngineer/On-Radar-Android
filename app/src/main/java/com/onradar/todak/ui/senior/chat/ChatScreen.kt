@@ -63,15 +63,24 @@ fun ChatScreen(
             },
         )
     }
-    DisposableEffect(Unit) { onDispose { speech.release() } }
+    DisposableEffect(Unit) {
+        vm.onMicTimeout = speech::release
+        onDispose {
+            vm.onMicTimeout = null
+            speech.release()
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) speech.start() else vm.onMicUnavailable("마이크를 쓸 수 없어요")
     }
     val startListening = {
-        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        if (granted) speech.start() else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        // 누른 즉시 "마이크를 준비하고 있어요"를 보여 주고, 준비 중에 또 눌러도 다시 시작하지 않습니다.
+        if (vm.onMicPressed()) {
+            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+            if (granted) speech.start() else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     LaunchedEffect(state.phase) {
@@ -133,6 +142,7 @@ private fun StatusArea(
         ChatPhase.PREPARING -> StatusLine("💭 답변을 준비하고 있어요", showSpinner = true)
         ChatPhase.AI_SPEAKING -> StatusLine("🔊 말하고 있어요")
         ChatPhase.READY -> PrimaryButton("🎤 누르고 말씀하세요", onClick = onSpeak)
+        ChatPhase.MIC_PREPARING -> StatusLine("🎤 마이크를 준비하고 있어요\n잠깐만 기다려 주세요", showSpinner = true)
         ChatPhase.LISTENING -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             StatusLine("👂 듣고 있어요. 말씀하세요", showSpinner = true)
             PrimaryButton("다 말했어요", onClick = onStopListening, containerColor = TodakColors.Evening)
