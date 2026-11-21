@@ -16,15 +16,20 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // Core API 주소. 배포 주소가 정해지면 바꿉니다. (API 명세서: CORE_BASE_URL)
-        buildConfigField("String", "CORE_BASE_URL", "\"https://todak-core.onrender.com/api/\"")
+        // Core API 주소 (Render 배포, 11/21). Retrofit 규칙상 끝의 '/'가 꼭 있어야 합니다.
+        // 다른 서버로 테스트하려면 gradle.properties나 명령줄에서 todak.coreBaseUrl=... 로 덮어씁니다.
+        val coreBaseUrl = (project.findProperty("todak.coreBaseUrl") as String?)
+            ?: "https://todak-core-fb9k.onrender.com/api/"
+        buildConfigField("String", "CORE_BASE_URL", "\"$coreBaseUrl\"")
         // true면 백엔드 없이 앱 안의 가짜 데이터로 동작합니다 (시연 모드). release는 항상 실서버.
         buildConfigField("boolean", "USE_MOCK", "false")
     }
 
     buildTypes {
         debug {
-            buildConfigField("boolean", "USE_MOCK", "true")
+            // 기본은 실서버. 서버 없이 화면만 볼 때는 todak.useMock=true 로 시연 모드를 켭니다.
+            val useMock = (project.findProperty("todak.useMock") as String?)?.toBoolean() ?: false
+            buildConfigField("boolean", "USE_MOCK", useMock.toString())
         }
         release {
             isMinifyEnabled = false
