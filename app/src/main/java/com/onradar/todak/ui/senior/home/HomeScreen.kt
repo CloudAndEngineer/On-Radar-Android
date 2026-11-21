@@ -5,13 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -173,13 +172,14 @@ private fun HomeContent(
 
         when (action) {
             is HomeAction.DoCheck -> {
-                val isMorning = action.session == Session.MORNING
-                SessionBadge(isMorning)
-                Text(
-                    if (isMorning) "오늘 아침 몸 상태를 알려 주세요" else "오늘 식사를 알려 주세요",
-                    style = MaterialTheme.typography.headlineMedium,
+                // 설명 없이 지금 할 일 하나만, 남은 화면을 다 쓰는 큰 버튼으로.
+                SessionBadge(action.session == Session.MORNING)
+                PrimaryButton(
+                    "오늘 체크하기",
+                    onClick = { onStartCheck(action.session) },
+                    modifier = Modifier.heightIn(min = HUGE_BUTTON_HEIGHT),
+                    textStyle = MaterialTheme.typography.displayLarge,
                 )
-                PrimaryButton("오늘 체크하기", onClick = { onStartCheck(action.session) })
             }
             is HomeAction.Talk -> {
                 // FCM 알림이 연결되기 전까지는 "알려 드릴게요"라고 약속하지 않고 일정만 안내합니다.
@@ -202,13 +202,8 @@ private fun HomeContent(
             }
         }
         // callContact(가족 전화)는 가족 기능(TODO) 전까지 항상 null이라 [딸에게 전화하기]를 그리지 않습니다.
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "급할 땐 아래 빨간 버튼을 누르세요",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TodakColors.OnSurfaceMuted,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
+
+/** 홈의 주요 버튼 높이. 화면 아래쪽 절반 가까이를 차지합니다. */
+private val HUGE_BUTTON_HEIGHT = 200.dp
