@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,7 +43,7 @@ fun ChatScreen(
     onFinished: () -> Unit,
     onHelp: () -> Unit,
 ) {
-    val vm = todakViewModel(key = "chat-$checkId") { ChatViewModel(checkId, it.repository, it.tts) }
+    val vm = todakViewModel(key = "chat-$checkId") { ChatViewModel(checkId, it.repository, it.tts, it.appScope) }
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -96,7 +95,7 @@ fun ChatScreen(
                 items(state.messages) { Bubble(it) }
             }
 
-            StatusArea(state, onSpeak = startListening, onStopListening = speech::stop, onQuickReply = vm::send)
+            StatusArea(state, onSpeak = startListening, onStopListening = speech::stop, onRetry = vm::retryLast)
             SecondaryButton("다음에 할게요", onClick = vm::skip)
         }
     }
@@ -128,7 +127,7 @@ private fun StatusArea(
     state: ChatUiState,
     onSpeak: () -> Unit,
     onStopListening: () -> Unit,
-    onQuickReply: (String) -> Unit,
+    onRetry: () -> Unit,
 ) {
     when (state.phase) {
         ChatPhase.PREPARING -> StatusLine("💭 답변을 준비하고 있어요", showSpinner = true)
@@ -138,15 +137,14 @@ private fun StatusArea(
             StatusLine("👂 듣고 있어요. 말씀하세요", showSpinner = true)
             PrimaryButton("다 말했어요", onClick = onStopListening, containerColor = TodakColors.Evening)
         }
-        // 마이크가 안 될 때는 버튼으로 답할 수 있게 합니다. (심사 피드백)
+        // 마이크가 안 될 때: 질문과 상관없는 공통 답을 대신 보내지 않고, 다시 말하기 / 다음에 할게요만 둡니다.
         ChatPhase.MIC_FAILED -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            StatusLine("${state.failReason ?: "목소리를 잘 못 들었어요"}\n버튼으로 답해 주세요")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                listOf("네", "아니요", "그저 그래요").forEach { reply ->
-                    Box(Modifier.weight(1f)) { SecondaryButton(reply, onClick = { onQuickReply(reply) }) }
-                }
-            }
-            SecondaryButton("🎤 다시 말하기", onClick = onSpeak)
+            StatusLine(state.failReason ?: "목소리를 잘 못 들었어요")
+            PrimaryButton("🎤 다시 말하기", onClick = onSpeak)
+        }
+        ChatPhase.ERROR -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            StatusLine(state.failReason ?: "지금은 이야기를 이어가기 어려워요")
+            PrimaryButton("다시 해 보기", onClick = onRetry)
         }
         ChatPhase.FINISHED -> Unit
     }
