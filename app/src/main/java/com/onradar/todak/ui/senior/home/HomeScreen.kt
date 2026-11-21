@@ -169,20 +169,20 @@ private fun HomeContent(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Text("$displayName,\n안녕하세요", style = MaterialTheme.typography.displayLarge)
-        Spacer(Modifier.weight(1f))
 
         when (action) {
             is HomeAction.DoCheck -> {
-                // 설명 없이 지금 할 일 하나만, 남은 화면을 다 쓰는 큰 버튼으로.
+                // 인사 바로 밑에 아침/저녁 표시, 그 아래 남은 화면을 [오늘 체크하기]가 꽉 채웁니다.
                 SessionBadge(action.session == Session.MORNING)
                 PrimaryButton(
                     "오늘 체크하기",
                     onClick = { onStartCheck(action.session) },
-                    modifier = Modifier.heightIn(min = HUGE_BUTTON_HEIGHT),
+                    modifier = Modifier.weight(1f),
                     textStyle = MaterialTheme.typography.displayLarge,
                 )
             }
             is HomeAction.Talk -> {
+                Spacer(Modifier.weight(1f))
                 // FCM 알림이 연결되기 전까지는 "알려 드릴게요"라고 약속하지 않고 일정만 안내합니다.
                 Text(
                     listOfNotNull("✅ 오늘 체크를 마쳤어요", action.nextGuide).joinToString("\n"),
