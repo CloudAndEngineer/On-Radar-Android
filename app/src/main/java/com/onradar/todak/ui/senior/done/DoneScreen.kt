@@ -19,7 +19,7 @@ import com.onradar.todak.core.designsystem.TodakScaffold
 import com.onradar.todak.data.model.Session
 import com.onradar.todak.ui.common.appContainer
 
-/** ④ 완료. 다음 체크 시간을 알려 줍니다. (심사 피드백: 완료 후 다음 확인 시간 안내) */
+/** ④ 완료. 다음 체크 일정을 알려 줍니다. (심사 피드백: 완료 후 다음 확인 시간 안내) */
 @Composable
 fun DoneScreen(
     session: Session,
@@ -28,7 +28,9 @@ fun DoneScreen(
     onHelp: () -> Unit,
 ) {
     val isMorning = session == Session.MORNING
-    val nextGuide = if (isMorning) "저녁 6시에 다시 알려 드릴게요" else "내일 아침 8시에 다시 알려 드릴게요"
+    // FCM 알림이 연결되기 전까지는 "알려 드릴게요"라고 약속하지 않고 일정만 안내합니다.
+    // 정확한 시각은 홈에서 서버 opensAt으로 보여 줍니다.
+    val nextGuide = if (isMorning) "다음 체크는 저녁이에요" else "다음 체크는 내일 아침이에요"
     val tts = appContainer().tts
 
     LaunchedEffect(Unit) { tts.speak("오늘 체크 끝! $nextGuide") }
