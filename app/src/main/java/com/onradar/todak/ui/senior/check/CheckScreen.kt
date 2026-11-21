@@ -2,7 +2,6 @@ package com.onradar.todak.ui.senior.check
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,7 +20,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.onradar.todak.core.designsystem.ChoiceButton
-import com.onradar.todak.core.designsystem.ChoiceTile
+import com.onradar.todak.core.designsystem.TodakDimens
 import com.onradar.todak.core.designsystem.PrimaryButton
 import com.onradar.todak.core.designsystem.ScreenTitle
 import com.onradar.todak.core.designsystem.SecondaryButton
@@ -123,7 +122,7 @@ fun CheckScreen(
     TodakScaffold(onHelpClick = { tts.stop(); onHelp() }) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SessionBadge(isMorning)
             when (state.step) {
@@ -143,7 +142,7 @@ fun CheckScreen(
                     val scroll = rememberScrollState()
                     Column(
                         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         if (isMorning) MorningQuestion(vm::answer) else EveningQuestion(vm::answer)
                         state.error?.let {
@@ -159,7 +158,8 @@ fun CheckScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    SecondaryButton("이전", onClick = vm::back)
+                    // 저녁 질문은 선택지 4개가 다 보이도록 [이전]을 두지 않습니다.
+                    if (isMorning) SecondaryButton("이전", onClick = vm::back)
                 }
                 CheckStep.SUBMITTING -> LoadingMessage("저장하고 있어요")
             }
@@ -178,15 +178,12 @@ private fun MorningQuestion(onAnswer: (Int) -> Unit) {
 @Composable
 private fun EveningQuestion(onAnswer: (Int) -> Unit) {
     ScreenTitle(EVENING_QUESTION)
-    // 밥그릇 개수로 횟수를 표시합니다. 네 개가 한 화면에 들어오도록 2×2로 놓습니다.
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ChoiceTile("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) }, Modifier.weight(1f))
-        ChoiceTile("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) }, Modifier.weight(1f))
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ChoiceTile("🍚🍚🍚", "세 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(3) }, Modifier.weight(1f))
-        ChoiceTile("🥣", "못 먹었어요", TodakColors.OnSurfaceMuted, TodakColors.Surface, { onAnswer(0) }, Modifier.weight(1f))
-    }
+    // 밥그릇 개수로 횟수를 표시합니다. 가로로 긴 버튼 4개를 [이전] 버튼 높이(72dp)로 맞춰 한 화면에 넣습니다.
+    val h = TodakDimens.ButtonMinHeight
+    ChoiceButton("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) }, minHeight = h, compact = true)
+    ChoiceButton("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) }, minHeight = h, compact = true)
+    ChoiceButton("🍚🍚🍚", "세 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(3) }, minHeight = h, compact = true)
+    ChoiceButton("🥣", "못 먹었어요", TodakColors.OnSurfaceMuted, TodakColors.Surface, { onAnswer(0) }, minHeight = h, compact = true)
 }
 
 private const val MORNING_QUESTION = "오늘 몸은 어떠세요?"
