@@ -94,7 +94,7 @@ class HomeViewModel(private val repository: TodakRepository) : ViewModel() {
         return when {
             isOpen(evening) -> HomeAction.DoCheck(Session.EVENING)
             evening.status == CheckStatus.DONE && evening.checkId != null ->
-                HomeAction.Talk(evening.checkId, Session.EVENING, "다음 체크는 내일 아침이에요")
+                HomeAction.Talk(evening.checkId, Session.EVENING, nextGuide = null) // 저녁 뒤엔 '오늘 체크를 마쳤어요'만
             isOpen(morning) -> HomeAction.DoCheck(Session.MORNING)
             morning.status == CheckStatus.DONE && morning.checkId != null ->
                 HomeAction.Talk(morning.checkId, Session.MORNING, guide(evening))
@@ -192,7 +192,8 @@ private fun HomeContent(
                 PrimaryButton(
                     "이야기 나누기",
                     onClick = { onTalk(action.checkId, action.session) },
-                    modifier = Modifier.heightIn(min = HUGE_BUTTON_HEIGHT),
+                    // 안내 줄이 없는 저녁에는 그만큼 더 크게
+                    modifier = Modifier.heightIn(min = if (action.nextGuide == null) HUGE_BUTTON_HEIGHT + 56.dp else HUGE_BUTTON_HEIGHT),
                     textStyle = MaterialTheme.typography.displayLarge,
                 )
                 // 개발용: 낮에도 저녁 체크 흐름을 볼 수 있게. debug + 시연 모드에서만 보이고 release에는 없습니다.
