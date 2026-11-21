@@ -21,7 +21,7 @@ class SpeechInput(
     private val onResult: (String) -> Unit,
     private val onError: (SpeechError) -> Unit,
 ) {
-    enum class SpeechError { NOT_AVAILABLE, NEED_GOOGLE_APP, NO_MATCH, OTHER }
+    enum class SpeechError { NOT_AVAILABLE, NEED_GOOGLE_APP, NO_MATCH, NETWORK, OTHER }
 
     private val appContext = context.applicationContext
     private var recognizer: SpeechRecognizer? = null
@@ -117,6 +117,8 @@ class SpeechInput(
             onError(
                 when (error) {
                     SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> SpeechError.NO_MATCH
+                    // Google 음성 인식은 목소리를 서버로 보내 글로 바꾸므로 인터넷이 필요합니다.
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT, SpeechRecognizer.ERROR_SERVER -> SpeechError.NETWORK
                     else -> SpeechError.OTHER
                 },
             )
