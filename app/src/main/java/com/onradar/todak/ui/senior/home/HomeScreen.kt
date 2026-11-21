@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,7 +21,6 @@ import androidx.lifecycle.viewModelScope
 import com.onradar.todak.BuildConfig
 import com.onradar.todak.core.designsystem.PrimaryButton
 import com.onradar.todak.core.designsystem.ScreenTitle
-import com.onradar.todak.core.designsystem.SecondaryButton
 import com.onradar.todak.core.designsystem.SessionBadge
 import com.onradar.todak.core.designsystem.TodakColors
 import com.onradar.todak.core.designsystem.TodakScaffold
@@ -188,10 +189,17 @@ private fun HomeContent(
                     style = MaterialTheme.typography.headlineMedium,
                     color = TodakColors.Done,
                 )
-                PrimaryButton("이야기 나누기", onClick = { onTalk(action.checkId, action.session) })
-                // 개발용: 낮에도 저녁 체크 흐름을 볼 수 있게 (가짜 데이터 모드에서만)
+                PrimaryButton(
+                    "이야기 나누기",
+                    onClick = { onTalk(action.checkId, action.session) },
+                    modifier = Modifier.heightIn(min = HUGE_BUTTON_HEIGHT),
+                    textStyle = MaterialTheme.typography.displayLarge,
+                )
+                // 개발용: 낮에도 저녁 체크 흐름을 볼 수 있게. debug + 시연 모드에서만 보이고 release에는 없습니다.
                 if (BuildConfig.DEBUG && BuildConfig.USE_MOCK && action.session == Session.MORNING) {
-                    SecondaryButton("[개발용] 저녁 체크 미리 보기", onClick = { onStartCheck(Session.EVENING) })
+                    TextButton(onClick = { onStartCheck(Session.EVENING) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("개발용 · 저녁 체크 미리 보기", color = TodakColors.OnSurfaceMuted, fontSize = 16.sp)
+                    }
                 }
             }
             is HomeAction.Wait -> {
