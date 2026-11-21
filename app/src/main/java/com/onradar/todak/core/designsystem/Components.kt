@@ -235,7 +235,7 @@ fun ScreenTitle(text: String, modifier: Modifier = Modifier, subtitle: String? =
 @Composable
 fun SessionBadge(isMorning: Boolean) {
     val (text, color, container) = if (isMorning) {
-        Triple("☀️ 아침", TodakColors.Morning, TodakColors.MorningContainer)
+        Triple("☀️ 아침", TodakColors.OnMorningContainer, TodakColors.MorningContainer)
     } else {
         Triple("🌙 저녁", TodakColors.Evening, TodakColors.EveningContainer)
     }

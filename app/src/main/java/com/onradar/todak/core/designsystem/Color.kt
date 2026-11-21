@@ -25,6 +25,8 @@ object TodakColors {
     // 아침·저녁 구분 (심사 피드백: 시각적으로 구분)
     val Morning = Color(0xFFF2A93B)
     val MorningContainer = Color(0xFFFFF3DC)
+    /** 아침 배지 글자색. Morning(주황)은 연노랑 배경 위 대비 1.8:1이라 글자에는 진한 갈색(약 8:1)을 씁니다. */
+    val OnMorningContainer = Color(0xFF6B4000)
     val Evening = Color(0xFF3F4C8A)
     val EveningContainer = Color(0xFFE6E9F7)
 
