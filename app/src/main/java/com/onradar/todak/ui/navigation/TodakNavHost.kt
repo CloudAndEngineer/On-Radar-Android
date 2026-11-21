@@ -87,7 +87,6 @@ fun TodakNavHost(navController: NavHostController = rememberNavController()) {
                         popUpTo(Routes.HOME) // 대화에서 뒤로 가면 체크가 아니라 홈으로
                     }
                 },
-                onBack = { navController.popBackStack() },
                 onHelp = goHelp,
             )
         }

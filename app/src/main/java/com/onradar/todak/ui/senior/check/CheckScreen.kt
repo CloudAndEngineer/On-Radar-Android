@@ -23,7 +23,6 @@ import com.onradar.todak.core.designsystem.ChoiceButton
 import com.onradar.todak.core.designsystem.TodakDimens
 import com.onradar.todak.core.designsystem.PrimaryButton
 import com.onradar.todak.core.designsystem.ScreenTitle
-import com.onradar.todak.core.designsystem.SecondaryButton
 import com.onradar.todak.core.designsystem.SessionBadge
 import com.onradar.todak.core.designsystem.TodakColors
 import com.onradar.todak.core.designsystem.TodakScaffold
@@ -62,7 +61,6 @@ class CheckViewModel(
     val state = _state.asStateFlow()
 
     fun next() = _state.update { it.copy(step = CheckStep.QUESTION, error = null) }
-    fun back() = _state.update { it.copy(step = CheckStep.GREETING, error = null) }
 
     fun answer(value: Int) {
         val request = when (session) {
@@ -94,7 +92,6 @@ fun CheckScreen(
     session: Session,
     displayName: String,
     onSubmitted: (checkId: Long, answer: Int) -> Unit,
-    onBack: () -> Unit,
     onHelp: () -> Unit,
 ) {
     val vm = todakViewModel(key = "check-$session") { CheckViewModel(session, it.repository) }
@@ -134,11 +131,9 @@ fun CheckScreen(
                         onClick = vm::next,
                         containerColor = if (isMorning) TodakColors.Primary else TodakColors.Evening,
                     )
-                    SecondaryButton("이전", onClick = onBack)
                 }
                 CheckStep.QUESTION -> {
-                    // 선택지 영역만 스크롤되고 [이전]은 항상 아래에 보이게 합니다.
-                    // (Note 8 · 글꼴 1.1배에서 '못 먹었어요'가 잘리던 문제)
+                    // 선택지가 넘치면 이 영역만 스크롤됩니다. (Note 8 · 글꼴 1.1배 기준으로는 넘치지 않음)
                     val scroll = rememberScrollState()
                     Column(
                         modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
@@ -158,8 +153,6 @@ fun CheckScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    // 저녁 질문은 선택지 4개가 다 보이도록 [이전]을 두지 않습니다.
-                    if (isMorning) SecondaryButton("이전", onClick = vm::back)
                 }
                 CheckStep.SUBMITTING -> LoadingMessage("저장하고 있어요")
             }
@@ -178,7 +171,7 @@ private fun MorningQuestion(onAnswer: (Int) -> Unit) {
 @Composable
 private fun EveningQuestion(onAnswer: (Int) -> Unit) {
     ScreenTitle(EVENING_QUESTION)
-    // 밥그릇 개수로 횟수를 표시합니다. 가로로 긴 버튼 4개를 [이전] 버튼 높이(72dp)로 맞춰 한 화면에 넣습니다.
+    // 밥그릇 개수로 횟수를 표시합니다. 가로로 긴 버튼 4개를 72dp 높이로 맞춰 한 화면에 넣습니다.
     val h = TodakDimens.ButtonMinHeight
     ChoiceButton("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) }, minHeight = h, compact = true)
     ChoiceButton("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) }, minHeight = h, compact = true)
