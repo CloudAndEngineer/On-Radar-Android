@@ -1,0 +1,148 @@
+package com.onradar.todak.ui.senior.check
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.onradar.todak.core.designsystem.ChoiceButton
+import com.onradar.todak.core.designsystem.PrimaryButton
+import com.onradar.todak.core.designsystem.ScreenTitle
+import com.onradar.todak.core.designsystem.SecondaryButton
+import com.onradar.todak.core.designsystem.SessionBadge
+import com.onradar.todak.core.designsystem.TodakColors
+import com.onradar.todak.core.designsystem.TodakScaffold
+import com.onradar.todak.data.model.CheckRequest
+import com.onradar.todak.data.model.ConditionScore
+import com.onradar.todak.data.model.Session
+import com.onradar.todak.data.repository.ApiException
+import com.onradar.todak.data.repository.TodakRepository
+import com.onradar.todak.ui.common.LoadingMessage
+import com.onradar.todak.ui.common.todakViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+/**
+ * 한 화면에 질문 하나 (유저 플로우, 11/21 피드백 반영).
+ * 아침: ① 인사 → ② 몸 상태 / 저녁: ① 인사 → ② 밥 → 제출 후 ③ 짧은 대화로 이어집니다.
+ */
+enum class CheckStep { GREETING, QUESTION, SUBMITTING }
+
+data class CheckUiState(
+    val step: CheckStep = CheckStep.GREETING,
+    val error: String? = null,
+    val submittedCheckId: Long? = null,
+)
+
+class CheckViewModel(
+    private val session: Session,
+    private val repository: TodakRepository,
+) : ViewModel() {
+    private val _state = MutableStateFlow(CheckUiState())
+    val state = _state.asStateFlow()
+
+    fun next() = _state.update { it.copy(step = CheckStep.QUESTION, error = null) }
+    fun back() = _state.update { it.copy(step = CheckStep.GREETING, error = null) }
+
+    fun answer(value: Int) {
+        val request = when (session) {
+            Session.MORNING -> CheckRequest.morning(conditionScore = value)
+            Session.EVENING -> CheckRequest.evening(mealCount = value)
+        }
+        _state.update { it.copy(step = CheckStep.SUBMITTING, error = null) }
+        viewModelScope.launch {
+            val result = repository.submitCheck(request).recoverCatching { e ->
+                // 같은 날 같은 세션을 다시 보내면 409 → 오늘 checkId를 찾아 수정(PUT)합니다.
+                if (e is ApiException && e.code == "CHECK_ALREADY_SUBMITTED") {
+                    val today = repository.today().getOrThrow()
+                    val id = (if (session == Session.MORNING) today.morning else today.evening).checkId
+                        ?: throw e
+                    repository.updateCheck(id, request).getOrThrow()
+                } else {
+                    throw e
+                }
+            }
+            result
+                .onSuccess { res -> _state.update { it.copy(submittedCheckId = res.checkId) } }
+                .onFailure { e -> _state.update { it.copy(step = CheckStep.QUESTION, error = e.message) } }
+        }
+    }
+}
+
+@Composable
+fun CheckScreen(
+    session: Session,
+    displayName: String,
+    onSubmitted: (checkId: Long) -> Unit,
+    onBack: () -> Unit,
+    onHelp: () -> Unit,
+) {
+    val vm = todakViewModel(key = "check-$session") { CheckViewModel(session, it.repository) }
+    val state by vm.state.collectAsStateWithLifecycle()
+    val isMorning = session == Session.MORNING
+
+    LaunchedEffect(state.submittedCheckId) {
+        state.submittedCheckId?.let(onSubmitted)
+    }
+
+    TodakScaffold(onHelpClick = onHelp) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            SessionBadge(isMorning)
+            when (state.step) {
+                CheckStep.GREETING -> {
+                    ScreenTitle(
+                        if (isMorning) "좋은 아침이에요,\n$displayName!" else "좋은 저녁이에요,\n$displayName!",
+                    )
+                    Spacer(Modifier.weight(1f))
+                    PrimaryButton(
+                        if (isMorning) "네, 일어났어요" else "네, 안녕하세요",
+                        onClick = vm::next,
+                        containerColor = if (isMorning) TodakColors.Primary else TodakColors.Evening,
+                    )
+                    SecondaryButton("이전", onClick = onBack)
+                }
+                CheckStep.QUESTION -> {
+                    if (isMorning) MorningQuestion(vm::answer) else EveningQuestion(vm::answer)
+                    state.error?.let {
+                        Text(it, color = TodakColors.Emergency, style = MaterialTheme.typography.bodyLarge)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    SecondaryButton("이전", onClick = vm::back)
+                }
+                CheckStep.SUBMITTING -> LoadingMessage("저장하고 있어요")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MorningQuestion(onAnswer: (Int) -> Unit) {
+    ScreenTitle("오늘 몸은 어떠세요?")
+    ChoiceButton("😊", "좋아요", TodakColors.Good, TodakColors.GoodContainer, { onAnswer(ConditionScore.GOOD) })
+    ChoiceButton("😐", "그저 그래요", TodakColors.SoSo, TodakColors.SoSoContainer, { onAnswer(ConditionScore.SO_SO) })
+    ChoiceButton("😣", "안 좋아요", TodakColors.Bad, TodakColors.BadContainer, { onAnswer(ConditionScore.BAD) })
+}
+
+@Composable
+private fun EveningQuestion(onAnswer: (Int) -> Unit) {
+    ScreenTitle("오늘 밥은 몇 번 드셨어요?")
+    // 밥그릇 개수로 횟수를 표시합니다.
+    ChoiceButton("🍚", "한 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(1) })
+    ChoiceButton("🍚🍚", "두 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(2) })
+    ChoiceButton("🍚🍚🍚", "세 번", TodakColors.Evening, TodakColors.EveningContainer, { onAnswer(3) })
+    ChoiceButton("🥣", "못 먹었어요", TodakColors.OnSurfaceMuted, TodakColors.Surface, { onAnswer(0) })
+}
