@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
 
 /**
  * 한 화면에 질문 하나 (유저 플로우, 11/21 피드백 반영).
- * 아침: ① 인사 → ② 몸 상태 / 저녁: ① 인사 → ② 밥 → 제출 후 ③ 짧은 대화로 이어집니다.
+ * 아침: 몸 상태 / 저녁: ① 인사 → ② 밥 → 제출 후 짧은 대화로 이어집니다.
  */
 enum class CheckStep { GREETING, QUESTION, SUBMITTING }
 
@@ -57,7 +57,10 @@ class CheckViewModel(
     private val session: Session,
     private val repository: TodakRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(CheckUiState())
+    // 아침은 인사 화면 없이 바로 몸 상태 질문으로 들어갑니다.
+    private val _state = MutableStateFlow(
+        CheckUiState(step = if (session == Session.MORNING) CheckStep.QUESTION else CheckStep.GREETING),
+    )
     val state = _state.asStateFlow()
 
     fun next() = _state.update { it.copy(step = CheckStep.QUESTION, error = null) }
@@ -110,7 +113,8 @@ fun CheckScreen(
     LaunchedEffect(state.step) {
         when (state.step) {
             CheckStep.GREETING -> tts.speak(greeting)
-            CheckStep.QUESTION -> tts.speak(if (isMorning) MORNING_QUESTION else EVENING_QUESTION)
+            // 인사 화면이 없는 아침은 질문 앞에 인사를 붙여 읽습니다.
+            CheckStep.QUESTION -> tts.speak(if (isMorning) "좋은 아침이에요. $MORNING_QUESTION" else EVENING_QUESTION)
             CheckStep.SUBMITTING -> tts.stop()
         }
     }
@@ -163,9 +167,11 @@ fun CheckScreen(
 @Composable
 private fun MorningQuestion(onAnswer: (Int) -> Unit) {
     ScreenTitle(MORNING_QUESTION)
-    ChoiceButton("😊", "좋아요", TodakColors.Good, TodakColors.GoodContainer, { onAnswer(ConditionScore.GOOD) })
-    ChoiceButton("😐", "그저 그래요", TodakColors.SoSo, TodakColors.SoSoContainer, { onAnswer(ConditionScore.SO_SO) })
-    ChoiceButton("😣", "안 좋아요", TodakColors.Bad, TodakColors.BadContainer, { onAnswer(ConditionScore.BAD) })
+    // [이전]이 없어진 만큼 선택지 3개를 크게.
+    val h = MORNING_CHOICE_HEIGHT
+    ChoiceButton("😊", "좋아요", TodakColors.Good, TodakColors.GoodContainer, { onAnswer(ConditionScore.GOOD) }, minHeight = h)
+    ChoiceButton("😐", "그저 그래요", TodakColors.SoSo, TodakColors.SoSoContainer, { onAnswer(ConditionScore.SO_SO) }, minHeight = h)
+    ChoiceButton("😣", "안 좋아요", TodakColors.Bad, TodakColors.BadContainer, { onAnswer(ConditionScore.BAD) }, minHeight = h)
 }
 
 @Composable
@@ -181,3 +187,4 @@ private fun EveningQuestion(onAnswer: (Int) -> Unit) {
 
 private const val MORNING_QUESTION = "오늘 몸은 어떠세요?"
 private const val EVENING_QUESTION = "오늘 밥은 몇 번 드셨어요?"
+private val MORNING_CHOICE_HEIGHT = 116.dp
