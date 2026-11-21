@@ -28,13 +28,20 @@ object Routes {
     const val ONBOARDING = "onboarding"
     const val HOME = "home"
     const val CHECK = "check/{session}"
-    const val CHAT = "chat/{session}/{checkId}"
-    const val DONE = "done/{session}"
+    // answer: 방금 저장한 답 (-1이면 모름, 예: 홈의 [이야기 나누기]로 들어온 경우)
+    const val CHAT = "chat/{session}/{checkId}?answer={answer}"
+    const val DONE = "done/{session}?answer={answer}"
     const val EMERGENCY = "emergency"
 
     fun check(session: Session) = "check/${session.name}"
-    fun chat(session: Session, checkId: Long) = "chat/${session.name}/$checkId"
-    fun done(session: Session) = "done/${session.name}"
+    fun chat(session: Session, checkId: Long, answer: Int = NO_ANSWER) = "chat/${session.name}/$checkId?answer=$answer"
+    fun done(session: Session, answer: Int = NO_ANSWER) = "done/${session.name}?answer=$answer"
+    const val NO_ANSWER = -1
+}
+
+private val answerArg = navArgument("answer") {
+    type = NavType.IntType
+    defaultValue = Routes.NO_ANSWER
 }
 
 @Composable
@@ -75,8 +82,8 @@ fun TodakNavHost(navController: NavHostController = rememberNavController()) {
             CheckScreen(
                 session = session,
                 displayName = sessionStore.displayName,
-                onSubmitted = { checkId ->
-                    navController.navigate(Routes.chat(session, checkId)) {
+                onSubmitted = { checkId, answer ->
+                    navController.navigate(Routes.chat(session, checkId, answer)) {
                         popUpTo(Routes.HOME) // 대화에서 뒤로 가면 체크가 아니라 홈으로
                     }
                 },
@@ -90,23 +97,27 @@ fun TodakNavHost(navController: NavHostController = rememberNavController()) {
             arguments = listOf(
                 navArgument("session") { type = NavType.StringType },
                 navArgument("checkId") { type = NavType.LongType },
+                answerArg,
             ),
         ) { entry ->
             val session = Session.valueOf(entry.arguments?.getString("session") ?: Session.MORNING.name)
             val checkId = entry.arguments?.getLong("checkId") ?: 0L
+            val answer = entry.arguments?.getInt("answer") ?: Routes.NO_ANSWER
             ChatScreen(
                 checkId = checkId,
                 onFinished = {
-                    navController.navigate(Routes.done(session)) { popUpTo(Routes.HOME) }
+                    navController.navigate(Routes.done(session, answer)) { popUpTo(Routes.HOME) }
                 },
                 onHelp = goHelp,
             )
         }
 
-        composable(Routes.DONE, arguments = listOf(navArgument("session") { type = NavType.StringType })) { entry ->
+        composable(Routes.DONE, arguments = listOf(navArgument("session") { type = NavType.StringType }, answerArg)) { entry ->
             val session = Session.valueOf(entry.arguments?.getString("session") ?: Session.MORNING.name)
+            val answer = entry.arguments?.getInt("answer")?.takeIf { it != Routes.NO_ANSWER }
             DoneScreen(
                 session = session,
+                answer = answer,
                 onHome = goHome,
                 onRedo = { navController.navigate(Routes.check(session)) { popUpTo(Routes.HOME) } },
                 onHelp = goHelp,

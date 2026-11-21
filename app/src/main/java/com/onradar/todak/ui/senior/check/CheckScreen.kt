@@ -51,6 +51,8 @@ data class CheckUiState(
     val step: CheckStep = CheckStep.GREETING,
     val error: String? = null,
     val submittedCheckId: Long? = null,
+    /** 저장된 답 (아침 conditionScore / 저녁 mealCount). 완료 화면에서 "몸 상태: 좋아요"로 보여 줍니다. */
+    val submittedAnswer: Int? = null,
 )
 
 class CheckViewModel(
@@ -82,7 +84,7 @@ class CheckViewModel(
                 }
             }
             result
-                .onSuccess { res -> _state.update { it.copy(submittedCheckId = res.checkId) } }
+                .onSuccess { res -> _state.update { it.copy(submittedCheckId = res.checkId, submittedAnswer = value) } }
                 .onFailure { e -> _state.update { it.copy(step = CheckStep.QUESTION, error = e.message) } }
         }
     }
@@ -92,7 +94,7 @@ class CheckViewModel(
 fun CheckScreen(
     session: Session,
     displayName: String,
-    onSubmitted: (checkId: Long) -> Unit,
+    onSubmitted: (checkId: Long, answer: Int) -> Unit,
     onBack: () -> Unit,
     onHelp: () -> Unit,
 ) {
@@ -101,7 +103,9 @@ fun CheckScreen(
     val isMorning = session == Session.MORNING
 
     LaunchedEffect(state.submittedCheckId) {
-        state.submittedCheckId?.let(onSubmitted)
+        val id = state.submittedCheckId
+        val answer = state.submittedAnswer
+        if (id != null && answer != null) onSubmitted(id, answer)
     }
 
     // 인사와 질문을 소리로도 읽어 줍니다. 단계가 바뀔 때 한 번만, 화면을 떠나면 멈춥니다.
