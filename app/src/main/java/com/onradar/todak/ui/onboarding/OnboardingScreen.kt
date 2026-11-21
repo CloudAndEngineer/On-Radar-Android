@@ -71,7 +71,7 @@ class OnboardingViewModel(
 }
 
 @Composable
-fun OnboardingScreen(onRegistered: () -> Unit) {
+fun OnboardingScreen(reRegister: Boolean = false, onRegistered: () -> Unit) {
     val vm = todakViewModel { OnboardingViewModel(it.repository, it.sessionStore) }
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -87,7 +87,12 @@ fun OnboardingScreen(onRegistered: () -> Unit) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            ScreenTitle("토닥 시작하기", subtitle = "복지사 선생님이 함께 설정해 드려요")
+            if (reRegister) {
+                ScreenTitle("다시 등록이 필요해요", subtitle = "복지사 선생님께 다시 등록을 부탁해 주세요")
+            } else {
+                ScreenTitle("토닥 시작하기", subtitle = "복지사 선생님이 함께 설정해 드려요")
+            }
+            // 이 버튼은 안내를 들었다는 확인일 뿐, 서버의 동의 기록(consent_at)은 복지사 쪽에서 남깁니다.
 
             Text(
                 "• 하루 두 번, 아침·저녁에 버튼 하나만 누르시면 돼요.\n" +

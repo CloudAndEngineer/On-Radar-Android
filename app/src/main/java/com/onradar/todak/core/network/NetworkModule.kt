@@ -27,7 +27,10 @@ object NetworkModule {
             } else {
                 chain.request()
             }
-            chain.proceed(request)
+            val response = chain.proceed(request)
+            // 토큰을 붙여 보냈는데 401이면 등록이 무효 → 복지사 도움을 받아 다시 등록해야 합니다.
+            if (response.code == 401 && token != null) sessionStore.invalidate()
+            response
         }
 
         val client = OkHttpClient.Builder()

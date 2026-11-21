@@ -1,6 +1,9 @@
 package com.onradar.todak.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -43,9 +46,17 @@ fun TodakNavHost(navController: NavHostController = rememberNavController()) {
         navController.navigate(Routes.HOME) { popUpTo(Routes.HOME) { inclusive = true } }
     }
 
+    // 서버가 토큰을 거부하면(401) 복지사 도움을 받아 다시 등록하도록 등록 화면으로 보냅니다.
+    val expired by sessionStore.expired.collectAsStateWithLifecycle()
+    LaunchedEffect(expired) {
+        if (expired) {
+            navController.navigate(Routes.ONBOARDING) { popUpTo(0) { inclusive = true } }
+        }
+    }
+
     NavHost(navController = navController, startDestination = start) {
         composable(Routes.ONBOARDING) {
-            OnboardingScreen(onRegistered = {
+            OnboardingScreen(reRegister = expired, onRegistered = {
                 navController.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
             })
         }
